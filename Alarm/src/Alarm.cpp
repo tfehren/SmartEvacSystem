@@ -11,8 +11,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 using namespace std;
+
+
+
 string GetStdoutFromCommand(string cmd);
-void Search(string thomas, string olzhas)
+bool findBT(string btMAC);
+
+bool findBT(string btMAC)
+{
+	std::stringstream command;
+	command << "l2ping ";
+	command << btMAC.c_str();
+	command << " -c 1 -t 1";
+	string result = GetStdoutFromCommand(command.str());
+	printf(result.c_str());
+	printf("\n");
+	int te = result.find(btMAC);
+	printf("Find mac: %d\n", te);
+    if (result.find(btMAC)!=-1){
+    	printf("Found device\n");
+    		return true;
+    }
+    	else{
+    		printf("NOT Found device\n");
+    		return false;
+    	}
+}
+
+void Search()
 {
 	bool alarm = true;
 	std::stringstream row_search;
@@ -23,35 +49,36 @@ void Search(string thomas, string olzhas)
 	while (alarm)
 	{
 		row_search.str(std::string());
-		if (!(searchOlzhas != -1 && searchThomas != -1))
+		//Go through all the users
+		for(int i=0;i<users;i++)
 		{
-			string result = GetStdoutFromCommand("hcitool scan");
-			searchThomas = result.find(thomas);
-			searchOlzhas = result.find(olzhas);
+			if (!present[i]){
+				//For every user that is missing search
+				present[i]=findBT(deviceMAC[i]);
+			}
 		}
 
+	printf("Thomas da? %b\nOlzhas da? %b\n", present[0], present[1]);
 
-	printf("Thomas da? %d\nOlzhas da? %d\n", searchThomas, searchOlzhas);
-
-	if (searchOlzhas == -1 && searchThomas == -1)
+	if (present[0] == false && present[1] == false)
 	{
 		row_search << "Alle fehlen     ";
 		lcd->setCursor(1,0);
 		lcd->write(row_search.str());
 	}
-	else if (searchOlzhas != -1 && searchThomas != -1)
+	else if (present[0] && present[1])
 	{
 		row_search << "Alle sind da";
 		lcd->setCursor(1,0);
 		lcd->write(row_search.str());
 	}
-	else if (searchOlzhas == -1)
+	else if (present[0])
 	{
 		row_search << "Olzhas fehlt";
 		lcd->setCursor(1,0);
 		lcd->write(row_search.str());
 	}
-	else if (searchThomas == -1)
+	else if (present[1])
 	{
 		row_search << "Thomas fehlt";
 		lcd->setCursor(1,0);
@@ -162,10 +189,20 @@ void time_update()
 int main()
 {
 	std::stringstream row_1, row_2;
+	//Init
+	users=2;
+	present.push_back(false);
+	deviceMAC.push_back("08:FC:88:3A:E9:A4");
+	userName.push_back("Thomas");
 
+	present.push_back(false);
+	deviceMAC.push_back("3C:A1:0D:A1:56:A7");
+	userName.push_back("Olzhas");
+	//string deviceMAC = {"08:FC:88:3A:E9:A4", "3C:A1:0D:A1:56:A7"};
+	//string userName = {"Thomas", "Olzhas"};
 	string thomas = "08:FC:88:3A:E9:A4";
-	string olzhas = "3C:A1:0D:A1:56:A7";
-
+//	string olzhas = "3C:A1:0D:A1:56:A7";
+   findBT(thomas);
 	uint8_t r, g, b;
 
 
@@ -212,7 +249,7 @@ int main()
 
 
 
-			Search(thomas, olzhas);
+			Search();
 
 		}
 		else
