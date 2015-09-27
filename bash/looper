@@ -1,0 +1,5 @@
+#!/bin/bash
+for (( ; ; ))
+do
+./timeout3 node index.js
+done
