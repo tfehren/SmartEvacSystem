@@ -16,155 +16,155 @@ using namespace std;
 
 string GetStdoutFromCommand(string cmd);
 bool findBT(string btMAC);
-
 bool findBT(string btMAC)
 {
 	std::stringstream command;
 	command << "l2ping ";
 	command << btMAC.c_str();
-	command << " -c 1 -t 1";
+	command << " -c 2 -t 1 -f";
 	string result = GetStdoutFromCommand(command.str());
 	printf(result.c_str());
 	printf("\n");
-	int te = result.find(btMAC);
+	int te = result.find("Host is down");
 	printf("Find mac: %d\n", te);
-    if (result.find(btMAC)!=-1){
-    	printf("Found device\n");
-    		return true;
-    }
-    	else{
-    		printf("NOT Found device\n");
-    		return false;
-    	}
+	if (te != -1)
+	{
+		printf("NOT Found device\n");
+		return false;
+	}
+	else
+	{
+		printf("Found device\n");
+		return true;
+	}
 }
 
 void Search()
 {
 	bool alarm = true;
-	std::stringstream row_search;
+	std::stringstream row_search, row_top;
 
-	int searchOlzhas = -1;
-	int searchThomas = -1;
 
+	bool initSearch = true;
 	while (alarm)
 	{
+		bool noPresent= true;
+		bool allPresent = true;
 		row_search.str(std::string());
+		row_top.str(std::string());
 		//Go through all the users
+
 		for(int i=0;i<users;i++)
 		{
 			if (!present[i]){
 				//For every user that is missing search
 				present[i]=findBT(deviceMAC[i]);
 			}
+
+			//Check array present
+
+			for(int j=0;j<users;j++)
+			{
+				if (present[j])
+					noPresent=false;
+				else
+					allPresent=false;
+			}
+
+			// Edit for more users
+//			if (noPresent)
+//			{
+//				row_search << "No one here     ";
+//				lcd->setCursor(1,0);
+//				lcd->write(row_search.str());
+//			}
+//			else
+			if(allPresent && !noPresent){
+				row_search << "Everyone here   ";
+				lcd->setCursor(1,0);
+				lcd->write(row_search.str());
+				row_search.str(std::string());
+
+				lcd->setColor(255, 255, 255);
+
+				//clear row
+				row_search << "                ";
+				lcd->setCursor(0,0);
+				lcd->write(row_search.str());
+				row_search.str(std::string());
+			}
+			else
+			{
+				row_top << "Alarm! Missing: ";
+				lcd->setCursor(0,0);
+				lcd->write(row_top.str());
+				//clear row
+				row_search << "                ";
+				lcd->setCursor(1,0);
+				lcd->write(row_search.str());
+				row_search.str(std::string());
+				for(int i=0;i<users;i++)
+				{
+					if (!present[i]){
+						//For every user that is missing search
+						row_search << userName[i];
+						row_search << " ";
+
+					}
+				}
+				lcd->setCursor(1,0);
+				lcd->write(row_search.str());
+			}
+
+
+
+			if (button->value() == 1)
+			{
+				alarm = false;
+				row_search.str(std::string());
+				row_search << "#RESET#         ";
+				lcd->setCursor(0,0);
+				lcd->write(row_search.str());
+
+				sleep(1);
+			}
 		}
+			if (initSearch && !noPresent && false)
+			{
+				//Send SMS
+				if (present[0]==false){
+					system("./SMSthomas.sh");
+					printf("Sms Thomas\n");
+				}
 
-	printf("Thomas da? %b\nOlzhas da? %b\n", present[0], present[1]);
+				if (present[1]==false){
+					system("./SMSolzhas.sh");
+					printf("Sms Olzhas\n");
+				}
 
-	if (present[0] == false && present[1] == false)
-	{
-		row_search << "Alle fehlen     ";
-		lcd->setCursor(1,0);
-		lcd->write(row_search.str());
-	}
-	else if (present[0] && present[1])
-	{
-		row_search << "Alle sind da";
-		lcd->setCursor(1,0);
-		lcd->write(row_search.str());
-	}
-	else if (present[0])
-	{
-		row_search << "Olzhas fehlt";
-		lcd->setCursor(1,0);
-		lcd->write(row_search.str());
-	}
-	else if (present[1])
-	{
-		row_search << "Thomas fehlt";
-		lcd->setCursor(1,0);
-		lcd->write(row_search.str());
-	}
-
-		if (button->value() == 1)
-		{
-			alarm = false;
-			row_search.str(std::string());
-			row_search << "#RESET#";
-			lcd->setCursor(0,0);
-			lcd->write(row_search.str());
-			uint8_t r, g, b;
-			r = 0;
-			g = 255;
-			b = 0;
-			lcd->setColor(r, g, b);
-			sleep(2);
-		}
-
+				initSearch=false;
+			}
 	}
 
 }
 
+
+
 string GetStdoutFromCommand(string cmd) {
 
-   string data;
-   FILE * stream;
-   const int max_buffer = 256;
-   char buffer[max_buffer];
-   cmd.append(" 2>&1");
+	string data;
+	FILE * stream;
+	const int max_buffer = 256;
+	char buffer[max_buffer];
+	cmd.append(" 2>&1");
 
-   stream = popen(cmd.c_str(), "r");
-   if (stream) {
-   while (!feof(stream))
-   if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
-   pclose(stream);
-   }
-   return data;
-   }
-
-void timeoutCheck()
-{
-	std::stringstream row_2;
-	int timeDifference = 0;
-	uint8_t r, g, b;
-
-//		if (timeoutSec == 0)
-//		{
-//			timeoutSec = Sec;
-//		}
-//
-//
-//		timeDifference = Sec - timeoutSec;
-//
-//
-//
-//
-	if (timeDifference >= 10)
-	{
-		ledGreen->on();
-		usleep(70000);
-		ledGreen->off();
+	stream = popen(cmd.c_str(), "r");
+	if (stream) {
+		while (!feof(stream))
+			if (fgets(buffer, max_buffer, stream) != NULL) data.append(buffer);
+		pclose(stream);
 	}
-
-//	printf("counter: %d, Diff: %d, timeoutSec: %d \n", timeDifference, timeoutSec);
-	row_2 << "Timeout: " << timeDifference <<"   ";
-	lcd->setCursor(1,0);
-	lcd->write(row_2.str());
-
-	if (timeDifference >= 20)
-		{
-			r = 255;
-			g = 0;
-			b = 0;
-		}
-	else
-		{
-			r = (int)(23 * timeDifference);
-			g = (int)(64 * timeDifference);
-			b = (int)(186 * (1 - timeDifference));
-		}
-
-		lcd->setColor(r, g, b);
-
+	return data;
 }
 
 void time_update()
@@ -180,7 +180,7 @@ void time_update()
 	int Sec    = localTime->tm_sec;
 
 
-	row_1 << "Time: " << Hour << ":" << Min << ":" << Sec;
+	row_1 << "Time: " << Hour << ":" << Min << ":" << Sec << "   ";
 	lcd->setCursor(0,0);
 	lcd->write(row_1.str());
 }
@@ -198,12 +198,10 @@ int main()
 	present.push_back(false);
 	deviceMAC.push_back("3C:A1:0D:A1:56:A7");
 	userName.push_back("Olzhas");
-	//string deviceMAC = {"08:FC:88:3A:E9:A4", "3C:A1:0D:A1:56:A7"};
-	//string userName = {"Thomas", "Olzhas"};
-	string thomas = "08:FC:88:3A:E9:A4";
-//	string olzhas = "3C:A1:0D:A1:56:A7";
-   findBT(thomas);
-	uint8_t r, g, b;
+
+	system("./startBT.sh");
+	sleep(1);
+	system("./startBT.sh");
 
 
 	mraa_platform_t platform = mraa_get_platform_type();
@@ -220,9 +218,6 @@ int main()
 	}
 
 
-
-
-
 	for (;;) {
 
 		if (button->value() == 1)
@@ -230,24 +225,23 @@ int main()
 			ledGreen->off();
 			ledRed->on();
 
-			r = 255;
-			g = 0;
-			b = 0;
-			lcd->setColor(r, g, b);
+			lcd->setColor(255, 0, 0);
 
 			row_1.str(std::string());
-			row_1 << "Alarm!         ";
+			row_1 << "Alarm!          ";
 
 			lcd->setCursor(0,0);
 			lcd->write(row_1.str());
 
 			row_2.str(std::string());
-			row_2 << "Suche laeuft   ";
+			row_2 << "Searching...    ";
 
 			lcd->setCursor(1,0);
 			lcd->write(row_2.str());
 
-
+			//reset present
+			for(int i=0;i<users;i++)
+				present[i]=false;
 
 			Search();
 
@@ -257,19 +251,15 @@ int main()
 			ledGreen->on();
 			ledRed->off();
 
-			r = 0;
-			g = 255;
-			b = 0;
-			lcd->setColor(r, g, b);
+			lcd->setColor(0, 255, 0);
 
 			time_update();
 
 			row_2.str(std::string());
-			row_2 << "Normalbetrieb  ";
+			row_2 << "Normal mode     ";
 
 			lcd->setCursor(1,0);
 			lcd->write(row_2.str());
-
 		}
 
 
